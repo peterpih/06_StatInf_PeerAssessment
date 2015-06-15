@@ -1,0 +1,122 @@
+---
+title: "Untitled"
+output: html_document
+---
+#
+
+This assignment uses the ToothGrowth data set which is built into R
+It is based on a study to see the effects of vitamin C intake for guinea pig tooth growth
+Guinea Pigs, like humans, are dependent on consuming vitamin C
+
+Additional information on the data set is available here:
+https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html
+
+### The ToothGrowth data set
+
+```{R}
+class(ToothGrowth)
+str(ToothGrowth)
+unique(ToothGrowth$dose)
+```
+
+The data columns in the data frame are:
+
+- len - tooth length
+- supp - kind of supplement used: orange juice or asorbic acid
+- dose - dosage in milligrams (0.5, 1.0, 2.0)
+
+Each supplement type and dosage has 10 observations, giving a total of 60 observations/rows in the data set.
+
+
+### Of Interest
+
+The two things to look into with this data set:
+
+1) Effect of dosage on tooth growth
+2) Effect of supplement type on tooth growth
+
+An initial plot of the data shows that there is a strong trend in dosage level regardless of type of supplement.
+
+```{R}
+require(ggplot2)
+
+ggplot(ToothGrowth, aes(factor(dose), len)) + geom_boxplot() + facet_grid(.~supp) +
+  xlab("Dosage") + ylab("Tooth Length") + ggtitle("Vitamin C Supplement and Tooth Length in Guinea Pigs")
+```
+
+As dosage increases, tooth length increases, regardless of the type of supplement given.  However there seems to be differences in rates of effectiveness at different dosage levels depending on the supplement given.
+
+To further understand the interaction between supplement and dosage we will calculate p-values based 
+
+
+### Summary Data By Supplement / Dosage
+
+Calculate some summary statistics for the data set and put in a data.frame **summ_data** and also create a matrix which will be used to caompute the p-values.  The new matrix, ***data***, will use paste(supplementary, dosage) as column headers for subsetting the tooth length data.
+
+```{R}
+supp_types <- unique(ToothGrowth$supp)            # supplementary types
+dosage_type <- unique(ToothGrowth$dose)           # dosages
+
+summ_data <- data.frame()                         # summary data frame
+data <- numeric()                                 # new matrix to be used to compute p-values
+for (i in supp_types){                            # for each supplementary type
+    supp_subset <- subset(ToothGrowth, ToothGrowth$supp == i)
+    
+    for (k in dosage_type){                       # for each dosage
+        dosage_subset <- subset(supp_subset, supp_subset$dose == k)
+        
+        t_mean <- mean(dosage_subset$len)
+        t_std <- sd(dosage_subset$len)
+        t_count <- nrow(dosage_subset)
+        
+        summ_data <- rbind(summ_data, data.frame(supp=i, dose=k, mean=t_mean, std=t_std, count=t_count))
+        
+        data <- cbind(data, dosage_subset$len)    # save the subset data as a new column for use later
+        colnames(data)[ncol(data)] <- paste(i, k) # create the category names to be used as column names
+    }
+}
+#
+# Show the summary data
+#
+summ_data
+```
+
+The summary data confirms the upward slopes of means in the graphs as dosage increases and the differing variances in each of the subset categories.
+
+### Compute The p-value Table
+
+Initiailize the statistic matrix, **p_vals**, where the pairwise p-values will be stored.
+We will use the column factors (supplement/dosage pair) as column and row names in the statistic matrix.
+
+```{R}
+p_vals<-matrix(nrow=ncol(data), ncol=ncol(data))
+colnames(p_vals) <- colnames(data)
+rownames(p_vals) <- colnames(data)
+
+colnames(data)    # 6 categories total
+```
+
+Calculate the pairwise p-values across all supplementary types and dosages.
+Since our level of significance is alpha=0.05, we look for p-values less than 0.05 to show the means are different.
+
+```{R}
+categories <- colnames(data)                # categories are supplement/dosage pairs
+for (i in categories){
+    for (k in categories){
+        p_vals[i,k] <- t.test(data[, i], data[,k], conf.level=0.95, paired=FALSE)$p.value
+    }
+}
+#
+# Display the p_vals table
+#
+round(p_vals, 4)
+```
+
+The resulting p-value matrix is symmetric around the upper-left to lower-right diagonal Where each category is run against itself and the p-value is 1.0 as expected.
+
+The p-values for changing dosages show that increasing dosages genrally have significant effects.  For example, reading down the first column, the dosage is **VC 0.5** (asorbic acid, 0.5mg), there are no values greater than 0.05 (expect for the very first against itself) showing that there were significant changes in the observed mean for other treatments.
+
+It is interesting that **OJ 2** and **VC 2** (p-value=0.9639) are not significantly different and **OJ 1** and **VC 2** (p-value=0.0965) show less difference than other pairings.  Also, orange juice seems to be more effective at lower dosages than just plain asorbic acid.
+
+Possible explainations for the apparent effectiveness of orange juice over asorbic acid might be other trace elements and minerals which would present in orange juice but not necessarily in pharmalogical grade asorbic acid.  The contributions of trace elements and minerals in nutrition have been widely known and reported on.
+
