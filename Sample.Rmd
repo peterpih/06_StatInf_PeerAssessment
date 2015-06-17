@@ -1,0 +1,103 @@
+---
+title: "Sample.Rmd"
+output: pdf_document
+---
+
+## Comparison of an Exponential Distributions and the Central Limit Theorem
+
+### Overview
+
+This exercise will look at the difference between a sample mean and it's related population mean and how the Central Limit Theorem works.  The Central Limit Theorem states that the larger a sample size, the closer the sample's mean and variance will reflect the true population mean and variance.
+
+## Simulations
+
+Two sets of simulations will be covered:
+
+- Create a sample of 40 draws, **Draw40** and compare the mean and standard deviation
+- Create 1000 iterations of 40 draws, **Draw1000**, and compare the observed means and standard deviations
+
+One of the **GIVENS** in this assignment is to use a **lambda value of 0.2**.
+```{R}
+lambda <- 0.2   # this is a GIVEN in the assignment
+```
+This implies that the theoretical **true mean and true standard deviation** of the population is:
+```{R}
+true_mean <- 1/lambda
+true_std <- 1/lambda
+```
+
+**NOTE: We will use `set.seed(2)` before every sequence to ensure reproducibility.**
+
+### Simulation of 40 Draws
+
+If we simulate 40 draws, what are the mean and standard deviation of this sample?
+```{R}
+set.seed(2)
+sample_data <- rexp(40, rate=lambda)
+sample_mean <- mean(sample_data)
+sample_std <- sd(sample_data)
+```
+
+```{R, fig.width=3, fig.height=3}
+hist(sample_data, main="Histogram of Sample(40)", xlab="Values")
+```
+
+The **true mean is 5**, how does this compare with the sample mean?
+
+The **sample_mean** is `r round(sample_mean,4)` and the standard deviation is `r round(sample_std, 4)`.
+To see if this is meaningful we calculate the confidence interval for the sample size of 40 given the true mean:
+
+```{R confidence interval}
+n <- 40
+true_mean + c(-1,1) * qt(0.95, n-1) * true_std/sqrt(n) 
+```
+We can see that the observed mean `r round(sample_mean, 4)` falls within this confidence interval, meaning that 95% of the time we will observe a sample's mean value within this interval as an estimation of the **true mean**.
+
+### Simulation of 1000 Draws of 40
+
+Note that as the size of the sample increases, the confidence interval decreases as there is less variation areound the theoretical mean
+
+Create a matrix of 1000 draws of 40
+
+```{R}
+set.seed(2)
+Draw1000 <- matrix(rexp(40000, rate=lambda), 1000,40)
+
+Draw1000_mean <- apply(Draw1000, 1, mean)
+Draw1000_std <- apply(Draw1000, 1, sd)
+
+mean(Draw1000_mean)
+mean(Draw1000_std)
+```
+What is the confidence interval?
+
+```{R confidence interval1000}
+n <- 40000
+mean(Draw1000_mean) + c(-1,1) * qt(0.95, n-1) * mean(Draw1000_std)/sqrt(n) 
+```
+Also note that by increasing the number of observations, the confidence interval has shrunk.
+
+```{R, fig.width=4, fig.height=2, echo=FALSE}
+require(ggplot2)
+ggplot(as.data.frame(Draw1000_mean), breaks=40, aes(Draw1000_mean)) + 
+  geom_histogram(fill="white",colour="black") + 
+  xlab("Draw(1000) Means") +
+  ylab("Frequency") +
+  geom_vline(xintercept=true_mean, colour="red", size=2) +
+  geom_vline(xintercept=mean(Draw1000_mean), colour="blue", size=1) +
+  geom_vline(xintercept=mean(sample_mean), colour="green", size=1)
+```
+
+
+The Central Limit Theorem states that as the sample size gets larger, the closer to the sample mean becomes the true mean
+
+\newpage
+## Appendix
+
+
+
+
+
+```{R}
+hist(Draw1000, breaks=40)
+```
