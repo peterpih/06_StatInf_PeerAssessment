@@ -1,17 +1,21 @@
 ---
-title: "Untitled"
-output: html_document
+output: pdf_document
 ---
-#
+##Effects of Vitamin C in Guinea Pig Tooth Growth 
+Peter Pih  
+Statistical Inference, Corsera(statinference-015)  
+June 17th, 2015 
 
-This assignment uses the ToothGrowth data set which is built into R
+This assignment uses the **ToothGrowth** data set which is built into R
 It is based on a study to see the effects of vitamin C intake for guinea pig tooth growth
 Guinea Pigs, like humans, are dependent on consuming vitamin C
 
 Additional information on the data set is available here:
 https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html
 
-### The ToothGrowth data set
+### The ToothGrowth Data Set
+
+What does the Tooth Growth data set look like?
 
 ```{R}
 class(ToothGrowth)
@@ -30,28 +34,27 @@ Each supplement type and dosage has 10 observations, giving a total of 60 observ
 
 ### Of Interest
 
-The two things to look into with this data set:
+The two things to investigate with this data set:
 
 1) Effect of dosage on tooth growth
 2) Effect of supplement type on tooth growth
 
-An initial plot of the data shows that there is a strong trend in dosage level regardless of type of supplement.
+An initial plot of the data shows that there is a strong trend in dosage level regardless of type of supplement:
 
-```{R}
-require(ggplot2)
-
+```{R , fig.width=6, fig.height=3}
+require(ggplot2, quietly=TRUE)
 ggplot(ToothGrowth, aes(factor(dose), len)) + geom_boxplot() + facet_grid(.~supp) +
   xlab("Dosage") + ylab("Tooth Length") + ggtitle("Vitamin C Supplement and Tooth Length in Guinea Pigs")
 ```
 
-As dosage increases, tooth length increases, regardless of the type of supplement given.  However there seems to be differences in rates of effectiveness at different dosage levels depending on the supplement given.
+As dosage increases, tooth length increases, regardless of the type of supplement given.  However there seems to be differences in rates of effectiveness at different dosage levels depending on the type of supplement given.
 
-To further understand the interaction between supplement and dosage we will calculate p-values based 
+To further understand the interaction between supplement and dosage we will calculate p-values based on subsets of supplement type and dosage level.
 
 
 ### Summary Data By Supplement / Dosage
 
-Calculate some summary statistics for the data set and put in a data.frame **summ_data** and also create a matrix which will be used to caompute the p-values.  The new matrix, ***data***, will use paste(supplementary, dosage) as column headers for subsetting the tooth length data.
+Calculate some summary statistics for the data set and put into a data.frame **summ_data** and also create a matrix which will be used to compute the p-values.  The new matrix, ***data***, will use `paste(supp, dose)` as column headers for subsetting the tooth length data.
 
 ```{R}
 supp_types <- unique(ToothGrowth$supp)            # supplementary types
@@ -75,48 +78,57 @@ for (i in supp_types){                            # for each supplementary type
         colnames(data)[ncol(data)] <- paste(i, k) # create the category names to be used as column names
     }
 }
-#
-# Show the summary data
-#
-summ_data
+
 ```
 
-The summary data confirms the upward slopes of means in the graphs as dosage increases and the differing variances in each of the subset categories.
+The summary data (shown in the Appendix)confirms the upward slopes of means in the graphs as dosage increases and the differing variances in each of the subset categories.
 
-### Compute The p-value Table
+## Compute The Pair-wise p-value Table
 
 Initiailize the statistic matrix, **p_vals**, where the pairwise p-values will be stored.
-We will use the column factors (supplement/dosage pair) as column and row names in the statistic matrix.
+We will use the column factors (supplement/dosage pair) as column and row names in the output p-value matrix.
 
 ```{R}
 p_vals<-matrix(nrow=ncol(data), ncol=ncol(data))
-colnames(p_vals) <- colnames(data)
-rownames(p_vals) <- colnames(data)
+colnames(p_vals) <- colnames(data)      # make the p-value matrix symmetric
+rownames(p_vals) <- colnames(data)      # by using the same column and row names
 
 colnames(data)    # 6 categories total
 ```
 
-Calculate the pairwise p-values across all supplementary types and dosages.
+Now we calculate the pairwise p-values across all supplementary types and dosages.
 Since our level of significance is alpha=0.05, we look for p-values less than 0.05 to show the means are different.
 
 ```{R}
-categories <- colnames(data)                # categories are supplement/dosage pairs
+categories <- colnames(data)            # categories are supplement/dosage pairs
 for (i in categories){
     for (k in categories){
         p_vals[i,k] <- t.test(data[, i], data[,k], conf.level=0.95, paired=FALSE)$p.value
     }
 }
-#
-# Display the p_vals table
-#
-round(p_vals, 4)
 ```
+
+## Results
 
 The resulting p-value matrix is symmetric around the upper-left to lower-right diagonal Where each category is run against itself and the p-value is 1.0 as expected.
 
 The p-values for changing dosages show that increasing dosages genrally have significant effects.  For example, reading down the first column, the dosage is **VC 0.5** (asorbic acid, 0.5mg), there are no values greater than 0.05 (expect for the very first against itself) showing that there were significant changes in the observed mean for other treatments.
 
-It is interesting that **OJ 2** and **VC 2** (p-value=0.9639) are not significantly different and **OJ 1** and **VC 2** (p-value=0.0965) show less difference than other pairings.  Also, orange juice seems to be more effective at lower dosages than just plain asorbic acid.
+It is interesting that **OJ 2** and **VC 2** (p-value=0.9639), the higher dosages of both supplements are not significantly different and **OJ 1** and **VC 2** (p-value=0.0965), show less difference than other pairings where dosage levles are similar, indicating orange juice effectiveness to be higher at lower dosages.
 
-Possible explainations for the apparent effectiveness of orange juice over asorbic acid might be other trace elements and minerals which would present in orange juice but not necessarily in pharmalogical grade asorbic acid.  The contributions of trace elements and minerals in nutrition have been widely known and reported on.
+Possible explainations for the apparent effectiveness of orange juice over asorbic acid might be other trace elements and minerals which would present in orange juice but not necessarily in pharmalogical grade asorbic acid.  The contributions of trace elements and minerals in nutrition have been widely known and reported on thoght their interactions are not completely understood.
+
+\newpage
+##Appendix
+
+##Summary Data Table
+
+```{R}
+summ_data
+```
+##Pairwise p-value Table
+
+```{R}
+round(p_vals, 4)
+```
 
